@@ -167,6 +167,40 @@ export {};
   );
 
   rule.invalid(
+    "reports prose glued to a directive token",
+    `
+      // oxfmt-ignoreThis explanation is prose
+      export const a = 1;
+      // oxlint-disabled because the old parser crashed
+      export const b = 2;
+      // @ts-expect-errors are fine here
+      export const c = 3;
+      // cspell: the words below are real
+      export const d = 4;
+    `,
+    assertReportCount(4),
+  );
+
+  rule.invalid(
+    "reports a header comment that only mentions copyright in prose",
+    `// No copyright checks are needed because the input is trusted.\nexport {};`,
+  );
+
+  rule.invalid(
+    "reports a line comment that starts with !",
+    `//! This explanation is prose\nexport {};`,
+  );
+
+  rule.invalid(
+    "reports JSDoc right after a block license header",
+    `/* SPDX-License-Identifier: MIT */
+/** Returns the total. */
+export const total = 1;
+`,
+    assertReportCount(1),
+  );
+
+  rule.invalid(
     "reports consecutive line comments once, and a directive splits them",
     `
       // first

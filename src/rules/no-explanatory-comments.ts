@@ -1,25 +1,32 @@
 import { defineRule, type ESTree } from "@oxlint/plugins";
 
+const END = String.raw`(?![\w-])`;
 const TOOL_DIRECTIVES = [
-  /^(?:oxlint|eslint)-(?:disable|enable)/u,
-  /^@ts-(?:expect-error|ignore|nocheck|check)\b/u,
-  /^\/\s*<(?:reference|amd-module|amd-dependency)\b/u,
-  /^[@#]__(?:PURE|NO_SIDE_EFFECTS)__/u,
-  /^@jsx(?:Frag|ImportSource|Runtime)?\b/u,
-  /^(?:oxfmt|prettier|biome|dprint)-ignore/u,
-  /^(?:v8|c8|istanbul)\s+ignore\b/u,
-  /^node:coverage\s+(?:ignore|disable|enable)\b/u,
-  /^@vite-ignore\b/u,
+  new RegExp(String.raw`^(?:oxlint|eslint)-(?:disable(?:-next-line|-line)?|enable)${END}`, "u"),
+  new RegExp(String.raw`^@ts-(?:expect-error|ignore|nocheck|check)${END}`, "u"),
+  /^\/\s*<(?:reference|amd-module|amd-dependency)\s/u,
+  new RegExp(String.raw`^[@#]__(?:PURE|NO_SIDE_EFFECTS)__${END}`, "u"),
+  new RegExp(String.raw`^@jsx(?:Frag|ImportSource|Runtime)?${END}`, "u"),
+  new RegExp(String.raw`^(?:oxfmt|prettier|biome|dprint)-ignore(?:-start|-end)?${END}`, "u"),
+  new RegExp(String.raw`^(?:v8|c8|istanbul)\s+ignore${END}`, "u"),
+  new RegExp(String.raw`^node:coverage\s+(?:ignore|disable|enable)${END}`, "u"),
+  new RegExp(String.raw`^@vite-ignore${END}`, "u"),
   /^(?:webpack|turbopack)[A-Z]\w*\s*:/u,
-  /^@effect-diagnostics/u,
-  /^@(?:vitest|jest)-environment/u,
+  new RegExp(String.raw`^@effect-diagnostics(?:-next-line)?${END}`, "u"),
+  new RegExp(String.raw`^@(?:vitest|jest)-environment${END}`, "u"),
   /^[#@]\s*source(?:Mapping)?URL=/u,
-  /^@refresh\s+reset\b/u,
-  /^cspell:/u,
-  /^quarantine:\s*#\d+/u,
+  new RegExp(String.raw`^@refresh\s+reset${END}`, "u"),
+  new RegExp(
+    String.raw`^cspell:\s*(?:words|ignore|ignoreRegExp|includeRegExp|flagWords|dictionaries|language|locale|enable|disable(?:-next-line|-line)?)${END}`,
+    "u",
+  ),
+  /^quarantine:\s*#\d+(?!\w)/u,
 ];
-const LICENSE_NOTICE =
-  /^!|@license\b|\bcopyright\b|©|\bSPDX-License-Identifier\b|\bPermission is hereby granted\b|\bLicensed under\b/iu;
+const LICENSE_NOTICE_LINE =
+  /^[\s*]*(?:copyright\b|©|\(c\)\s|SPDX-License-Identifier:|@license\b|Permission is hereby granted\b|Licensed under\b)/imu;
+const isLicenseNotice = (comment: ESTree.Comment) =>
+  (comment.type === "Block" && comment.value.startsWith("!")) ||
+  LICENSE_NOTICE_LINE.test(comment.value);
 const LEADING_COMMENT_DECORATION = /^[\s*]*/u;
 
 const MESSAGE =
@@ -31,9 +38,6 @@ const isToolDirective = (comment: ESTree.Comment) => {
   const text = comment.value.replace(LEADING_COMMENT_DECORATION, "");
   return TOOL_DIRECTIVES.some((directive) => directive.test(text));
 };
-
-const continuesBlock = (previous: ESTree.Comment | undefined, comment: ESTree.Comment) =>
-  previous !== undefined && comment.loc.start.line - previous.loc.end.line <= 1;
 
 const continuesLineComment = (previous: ESTree.Comment | undefined, comment: ESTree.Comment) =>
   comment.type === "Line" &&
@@ -63,11 +67,12 @@ export default defineRule({
         for (const comment of comments) {
           if (comment.range[0] >= firstCodeStart) break;
           const block = headerBlocks.at(-1);
-          if (block !== undefined && continuesBlock(block.at(-1), comment)) block.push(comment);
+          if (block !== undefined && continuesLineComment(block.at(-1), comment))
+            block.push(comment);
           else headerBlocks.push([comment]);
         }
         for (const block of headerBlocks) {
-          if (block.some((comment) => LICENSE_NOTICE.test(comment.value))) {
+          if (block.some(isLicenseNotice)) {
             for (const comment of block) licenseHeader.add(comment);
           }
         }
