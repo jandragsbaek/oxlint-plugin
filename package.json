@@ -1,21 +1,70 @@
 {
-  "name": "@glose/oxlint-plugin",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vp test run --config ../vite.config.ts --dir ."
+  "name": "@jandragsbaek/oxlint-plugin",
+  "version": "0.1.0",
+  "description": "Oxlint rules and presets for tests, Effect, React and product copy.",
+  "keywords": [
+    "effect",
+    "lint",
+    "oxlint",
+    "oxlint-plugin",
+    "react",
+    "react-compiler",
+    "vitest"
+  ],
+  "homepage": "https://github.com/jandragsbaek/oxlint-plugin#readme",
+  "bugs": "https://github.com/jandragsbaek/oxlint-plugin/issues",
+  "license": "MIT",
+  "author": "Jan Dragsbaek <jan@dragsbaek.tech>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jandragsbaek/oxlint-plugin.git"
   },
-  "dependencies": {
-    "@oxlint/plugins": "^1.93.0",
-    "effect": "catalog:"
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./presets": "./dist/presets.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "prepare": "vp config --no-agent",
+    "build": "vp pack",
+    "typecheck": "tsc --noEmit",
+    "test": "vp test run",
+    "lint": "vp lint --report-unused-disable-directives",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
+    "check": "vp fmt --check && vp lint --report-unused-disable-directives && tsc --noEmit && vp test run && vp pack",
+    "prepublishOnly": "vp pack"
   },
   "devDependencies": {
-    "@effect/platform-node": "catalog:",
-    "@effect/vitest": "catalog:",
-    "@types/node": "catalog:",
-    "typescript": "catalog:",
-    "vite-plus": "catalog:"
-  }
+    "@effect/platform-node": "4.1.2",
+    "@effect/vitest": "4.1.2",
+    "@oxlint/plugins": "^1.94.0",
+    "@types/node": "^24.19.2",
+    "effect": "4.1.2",
+    "oxlint": "1.91.0",
+    "publint": "^0.3.25",
+    "typescript": "^7.0.2",
+    "vite-plus": "1.5.1",
+    "yaml": "^2.9.1"
+  },
+  "peerDependencies": {
+    "oxlint": ">=1.91.0"
+  },
+  "peerDependenciesMeta": {
+    "oxlint": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "pnpm@12.16.1"
 }

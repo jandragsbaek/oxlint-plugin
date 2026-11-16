@@ -1,0 +1,35 @@
+name: Release
+
+# Push a v<version> tag that matches package.json. npm trusted publishing authenticates this
+# workflow, so no token is stored: configure it once on npmjs.com under the package's
+# Settings > Trusted publisher (repository jandragsbaek/oxlint-plugin, workflow release.yml).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - uses: pnpm/action-setup@v4
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Tag matches package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: pnpm check
+      # npm, not pnpm: trusted publishing needs npm 11.5.1 or later.
+      - run: npm publish

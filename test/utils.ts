@@ -99,17 +99,17 @@ export const createOxlintRuleHarness = (
   const run: RuleHarness["run"] = Effect.fnUntraced(function* (source: string) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const fixtureDir = yield* fs.makeTempDirectoryScoped({ prefix: "glose-oxlint-" });
+    const fixtureDir = yield* fs.makeTempDirectoryScoped({ prefix: "jandragsbaek-oxlint-" });
     const configPath = path.join(fixtureDir, ".oxlintrc.json");
     const sourcePath = path.join(fixtureDir, options.filename ?? "fixture.ts");
-    const repoRoot = path.join(import.meta.dirname, "..", "..");
+    const repoRoot = path.join(import.meta.dirname, "..");
     const oxlintBin = path.join(path.dirname(oxlintPackageJsonPath), "bin", "oxlint");
-    const pluginPath = path.join(repoRoot, "oxlint-plugin-glose", "index.ts");
+    const pluginPath = path.join(repoRoot, "src", "index.ts");
 
     yield* fs.writeFileString(
       configPath,
       yield* encodeOxlintConfig({
-        jsPlugins: [{ name: "glose", specifier: pluginPath }],
+        jsPlugins: [{ name: "jandragsbaek", specifier: pluginPath }],
         rules: { [ruleName]: ["error", ...(options.ruleOptions ?? [])] },
       }),
     );

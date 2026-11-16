@@ -1,0 +1,37 @@
+minimumReleaseAgeExclude:
+  - "@oxlint/binding-android-arm-eabi@1.94.0"
+  - "@oxlint/binding-android-arm64@1.94.0"
+  - "@oxlint/binding-darwin-arm64@1.94.0"
+  - "@oxlint/binding-darwin-x64@1.94.0"
+  - "@oxlint/binding-freebsd-x64@1.94.0"
+  - "@oxlint/binding-linux-arm-gnueabihf@1.94.0"
+  - "@oxlint/binding-linux-arm-musleabihf@1.94.0"
+  - "@oxlint/binding-linux-arm64-gnu@1.94.0"
+  - "@oxlint/binding-linux-arm64-musl@1.94.0"
+  - "@oxlint/binding-linux-ppc64-gnu@1.94.0"
+  - "@oxlint/binding-linux-riscv64-gnu@1.94.0"
+  - "@oxlint/binding-linux-riscv64-musl@1.94.0"
+  - "@oxlint/binding-linux-s390x-gnu@1.94.0"
+  - "@oxlint/binding-linux-x64-gnu@1.94.0"
+  - "@oxlint/binding-linux-x64-musl@1.94.0"
+  - "@oxlint/binding-openharmony-arm64@1.94.0"
+  - "@oxlint/binding-win32-arm64-msvc@1.94.0"
+  - "@oxlint/binding-win32-ia32-msvc@1.94.0"
+  - "@oxlint/binding-win32-x64-msvc@1.94.0"
+  - "@oxlint/plugins@1.94.0"
+  - oxlint@1.94.0
+
+overrides:
+  "@effect/vitest>vitest": "-"
+  # Vite+ ships its own Vite build; every `vite` dependency resolves to it.
+  vite: npm:@voidzero-dev/vite-plus-core@1.5.1
+  vite-plus: 1.5.1
+
+packageExtensions:
+  # Our patch makes @effect/vitest import vite-plus/test.
+  "@effect/vitest@*":
+    dependencies:
+      vite-plus: 1.5.1
+
+patchedDependencies:
+  "@effect/vitest@4.1.2": patches/@effect__vitest@4.1.2.patch
