@@ -55,7 +55,8 @@ them all.
 | `productCopy({ files })`     | Code that holds text users or agents read: no em dashes.                                                                                                                                           |
 | `uiText({ files, message })` | Interface code with i18n catalogs: no inline JSX text. `message` tells the reader where the catalogs are.                                                                                          |
 
-The presets that take `files` skip test files. `excludeFiles` skips more. Glose's setup:
+The presets that take `files` skip test files. `excludeFiles` skips more. Globs in `files` and
+`excludeFiles` are relative to the config file. Glose's setup:
 
 ```ts
 extends: [
