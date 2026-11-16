@@ -7,3 +7,5 @@ every project gets it. README.md says how to add one.
 - Presets in `src/presets.ts` hold the rule choices. A rule that fits only some projects goes in
   a preset those projects opt into, or takes options; it never names one project.
 - `pnpm check` runs what CI runs.
+- Release: bump `version` in `package.json`, merge, then push tag `v<version>`; `release.yml` publishes
+  to npm through trusted publishing (no token). Projects get a rule once they bump to that version.
