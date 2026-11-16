@@ -1,11 +1,13 @@
 import { definePlugin } from "@oxlint/plugins";
 
+import maxFileLines from "./rules/max-file-lines.ts";
+import maxFileLinesHard from "./rules/max-file-lines-hard.ts";
 import namespaceNodeImports from "./rules/namespace-node-imports.ts";
 import noDomTestEnvironment from "./rules/no-dom-test-environment.ts";
 import noEmDashCopy from "./rules/no-em-dash-copy.ts";
+import noExplanatoryComments from "./rules/no-explanatory-comments.ts";
 import noHooklessUseFunction from "./rules/no-hookless-use-function.ts";
 import noInlineSchemaCompile from "./rules/no-inline-schema-compile.ts";
-import noLowValueComments from "./rules/no-low-value-comments.ts";
 import noManualEffectRuntimeInTests from "./rules/no-manual-effect-runtime-in-tests.ts";
 import noManualMemo from "./rules/no-manual-memo.ts";
 import noPollingLoopInTests from "./rules/no-polling-loop-in-tests.ts";
@@ -25,12 +27,14 @@ export default definePlugin({
     name: "jandragsbaek",
   },
   rules: {
+    "max-file-lines": maxFileLines,
+    "max-file-lines-hard": maxFileLinesHard,
     "namespace-node-imports": namespaceNodeImports,
     "no-dom-test-environment": noDomTestEnvironment,
     "no-em-dash-copy": noEmDashCopy,
+    "no-explanatory-comments": noExplanatoryComments,
     "no-hookless-use-function": noHooklessUseFunction,
     "no-inline-schema-compile": noInlineSchemaCompile,
-    "no-low-value-comments": noLowValueComments,
     "no-manual-effect-runtime-in-tests": noManualEffectRuntimeInTests,
     "no-manual-memo": noManualMemo,
     "no-polling-loop-in-tests": noPollingLoopInTests,

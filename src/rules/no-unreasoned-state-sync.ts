@@ -18,8 +18,7 @@ const isEffectHookCall = (node: ESTree.CallExpression): boolean => {
   return false;
 };
 
-// Agents read this message and act on it, so it walks the alternatives before it shows the way out.
-const MESSAGE =
+const MESSAGE_FOR_AGENTS_ALTERNATIVES_FIRST =
   "Stop and reconsider before keeping this effect. " +
   "Is it computable from props or state? Compute it during render; the compiler memoizes it. " +
   "Does it respond to a user action? Do it in that handler. " +
@@ -35,8 +34,6 @@ const MESSAGE =
   "If the effect does that, name what it keeps in step on the line above: " +
   "`// oxlint-disable-next-line jandragsbaek/no-unreasoned-state-sync -- <what it syncs with and why>`.";
 
-// Every kept effect carries its reason in the suppression above it; jandragsbaek/require-suppression-reason
-// rejects a suppression that does not say why.
 export default defineRule({
   meta: {
     type: "suggestion",
@@ -54,7 +51,7 @@ export default defineRule({
         if (!isEffectHookCall(node)) return;
         context.report({
           node,
-          message: MESSAGE,
+          message: MESSAGE_FOR_AGENTS_ALTERNATIVES_FIRST,
         });
       },
     };

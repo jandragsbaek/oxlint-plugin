@@ -1,8 +1,8 @@
 # @jandragsbaek/oxlint-plugin
 
 Oxlint rules and presets, learned in real projects and shared between them. The rules keep
-tests deterministic, Effect code idiomatic, React code honest about its effects, and comments
-and suppressions worth reading.
+tests deterministic, Effect code idiomatic, React code honest about its effects, files short,
+and code free of comments that explain it.
 
 The rules started in [Glose](https://github.com/jandragsbaek/glose) and are adapted from
 [T3 Code](https://github.com/pingdotgg/t3code) under its MIT license.
@@ -45,15 +45,15 @@ them all.
 
 ### Presets
 
-| Preset                       | For                                                                                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `recommended`                | Any TypeScript project. Built-in rule choices, plus `namespace-node-imports`, `no-low-value-comments`, `no-unscoped-has`, `require-suppression-reason`. |
-| `tests`                      | Projects with Vitest tests. The rules read the filename and check only test files.                                                                      |
-| `effect`                     | Projects on [Effect](https://effect.website). `prefer-effect-fn` is off in test files.                                                                  |
-| `react`                      | React projects. Strict hook and render rules, and `no-unreasoned-state-sync`.                                                                           |
-| `reactCompiler({ files })`   | Files the React Compiler compiles. The compiler owns memoization. Use with `react`.                                                                     |
-| `productCopy({ files })`     | Code that holds text users or agents read: no em dashes.                                                                                                |
-| `uiText({ files, message })` | Interface code with i18n catalogs: no inline JSX text. `message` tells the reader where the catalogs are.                                               |
+| Preset                       | For                                                                                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recommended`                | Any TypeScript project. Built-in rule choices, plus `max-file-lines`, `max-file-lines-hard`, `namespace-node-imports`, `no-explanatory-comments`, `no-unscoped-has`, `require-suppression-reason`. |
+| `tests`                      | Projects with Vitest tests. The rules read the filename and check only test files.                                                                                                                 |
+| `effect`                     | Projects on [Effect](https://effect.website). `prefer-effect-fn` is off in test files.                                                                                                             |
+| `react`                      | React projects. Strict hook and render rules, and `no-unreasoned-state-sync`.                                                                                                                      |
+| `reactCompiler({ files })`   | Files the React Compiler compiles. The compiler owns memoization. Use with `react`.                                                                                                                |
+| `productCopy({ files })`     | Code that holds text users or agents read: no em dashes.                                                                                                                                           |
+| `uiText({ files, message })` | Interface code with i18n catalogs: no inline JSX text. `message` tells the reader where the catalogs are.                                                                                          |
 
 The presets that take `files` skip test files. `excludeFiles` skips more. Glose's setup:
 
@@ -76,27 +76,51 @@ extends: [
 
 All rules have the `jandragsbaek/` prefix.
 
-| Rule                                 | Rejects                                                                                                          |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `namespace-node-imports`             | Node built-ins imported other than as a namespace with the canonical name (`import * as NodeFS from "node:fs"`). |
-| `no-dom-test-environment`            | Per-file Vitest environment pragmas and DOM emulator imports (jsdom, happy-dom).                                 |
-| `no-em-dash-copy`                    | Em dashes in strings and JSX text.                                                                               |
-| `no-hookless-use-function`           | `use*` functions that call no hook; the React Compiler skips them.                                               |
-| `no-inline-schema-compile`           | Effect Schema decoders and encoders compiled inside function bodies.                                             |
-| `no-low-value-comments`              | Comments that repeat the code, divide sections, or narrate tests.                                                |
-| `no-manual-effect-runtime-in-tests`  | Effect runtimes made or run by hand in tests; use `@effect/vitest`.                                              |
-| `no-manual-memo`                     | `useMemo`, `useCallback` and memo directives where the React Compiler memoizes.                                  |
-| `no-polling-loop-in-tests`           | Test loops that spin on ticks until a condition holds.                                                           |
-| `no-real-time-wait-in-tests`         | Real-clock waits in tests.                                                                                       |
-| `no-test-in-loop`                    | Tests declared in a `for` loop; use `.each`.                                                                     |
-| `no-test-timeout-or-unreasoned-skip` | Per-test timeouts and retries, and skipped or focused tests with no tracking issue.                              |
-| `no-unreasoned-state-sync`           | Every React effect hook, until a suppression above it says what it keeps in step.                                |
-| `no-unscoped-has`                    | Tailwind `has-[...]` variants not anchored to a class, attribute, id or tag.                                     |
-| `no-untranslated-ui-text`            | JSX text and user-facing attributes that are not read from a catalog.                                            |
-| `no-wall-clock-in-tests`             | `Date.now()`, `new Date()`, `performance.now()` and `process.hrtime` in tests.                                   |
-| `prefer-catch-tags`                  | `Effect.catchTag`; use `Effect.catchTags`.                                                                       |
-| `prefer-effect-fn`                   | Functions that return `Effect.gen`; use `Effect.fn`.                                                             |
-| `require-suppression-reason`         | Lint and type-checker suppressions with no reason.                                                               |
+| Rule                                 | Rejects                                                                                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `max-file-lines`                     | Files longer than 500 lines (option `max`). A file that must stay long says why: `/* oxlint-disable jandragsbaek/max-file-lines -- <why> */`. |
+| `max-file-lines-hard`                | Files longer than 750 lines (option `max`). No disable directive silences it: split the file.                                                 |
+| `namespace-node-imports`             | Node built-ins imported other than as a namespace with the canonical name (`import * as NodeFS from "node:fs"`).                              |
+| `no-dom-test-environment`            | Per-file Vitest environment pragmas and DOM emulator imports (jsdom, happy-dom).                                                              |
+| `no-em-dash-copy`                    | Em dashes in strings and JSX text.                                                                                                            |
+| `no-explanatory-comments`            | Every comment except a license header at the top of the file and tool directives. See [Comments](#comments).                                  |
+| `no-hookless-use-function`           | `use*` functions that call no hook; the React Compiler skips them.                                                                            |
+| `no-inline-schema-compile`           | Effect Schema decoders and encoders compiled inside function bodies.                                                                          |
+| `no-manual-effect-runtime-in-tests`  | Effect runtimes made or run by hand in tests; use `@effect/vitest`.                                                                           |
+| `no-manual-memo`                     | `useMemo`, `useCallback` and memo directives where the React Compiler memoizes.                                                               |
+| `no-polling-loop-in-tests`           | Test loops that spin on ticks until a condition holds.                                                                                        |
+| `no-real-time-wait-in-tests`         | Real-clock waits in tests.                                                                                                                    |
+| `no-test-in-loop`                    | Tests declared in a `for` loop; use `.each`.                                                                                                  |
+| `no-test-timeout-or-unreasoned-skip` | Per-test timeouts and retries, and skipped or focused tests with no tracking issue.                                                           |
+| `no-unreasoned-state-sync`           | Every React effect hook, until a suppression above it says what it keeps in step.                                                             |
+| `no-unscoped-has`                    | Tailwind `has-[...]` variants not anchored to a class, attribute, id or tag.                                                                  |
+| `no-untranslated-ui-text`            | JSX text and user-facing attributes that are not read from a catalog.                                                                         |
+| `no-wall-clock-in-tests`             | `Date.now()`, `new Date()`, `performance.now()` and `process.hrtime` in tests.                                                                |
+| `prefer-catch-tags`                  | `Effect.catchTag`; use `Effect.catchTags`.                                                                                                    |
+| `prefer-effect-fn`                   | Functions that return `Effect.gen`; use `Effect.fn`.                                                                                          |
+| `require-suppression-reason`         | Lint and type-checker suppressions with no reason in the directive itself.                                                                    |
+
+### Comments
+
+The code explains itself: names, types, small functions and tests carry what a comment would.
+`no-explanatory-comments` allows only:
+
+- A license header: a comment block before any code that carries a license or copyright notice
+  (`SPDX-License-Identifier`, `Copyright`, `@license`, `/*!`, an MIT or "Licensed under" notice).
+- Tool directives, which a tool reads:
+  - lint: `oxlint-disable*`, `oxlint-enable`, `eslint-disable*`, `eslint-enable`, `biome-ignore`
+  - type checker: `@ts-expect-error`, `@ts-ignore`, `@ts-nocheck`, `@ts-check`,
+    `/// <reference …>`, `/// <amd-module …>`, `/// <amd-dependency …>`, `@effect-diagnostics`
+  - bundler and JSX: `@__PURE__`, `@__NO_SIDE_EFFECTS__` (and their `#__` forms), `@jsx`, `@jsxFrag`,
+    `@jsxImportSource`, `@jsxRuntime`, `@vite-ignore`, `webpack*:` and `turbopack*:` magic
+    comments, `# sourceMappingURL=`, `# sourceURL=`
+  - formatter: `oxfmt-ignore`, `prettier-ignore`, `dprint-ignore`
+  - coverage: `v8 ignore`, `c8 ignore`, `istanbul ignore`, `node:coverage`
+  - tests and editors: `@vitest-environment`, `@jest-environment`, `@refresh reset`, `cspell:`,
+    and `quarantine: #<issue>` above a skipped test (read by `no-test-timeout-or-unreasoned-skip`)
+
+Everything else fails: JSDoc, TODOs, section headers and "why" comments. A suppression's reason
+goes in the directive, after `--`.
 
 ## Add a rule
 

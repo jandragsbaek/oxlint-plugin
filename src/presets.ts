@@ -2,9 +2,12 @@ import type { OxlintConfig, OxlintOverride } from "oxlint";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 
-// The plugin is the sibling entry: index.ts in source, index.mjs once built.
 const here = NodeURL.fileURLToPath(import.meta.url);
-const PLUGIN_PATH = NodePath.join(NodePath.dirname(here), `index${NodePath.extname(here)}`);
+const siblingIndexTsInSourceOrIndexMjsOnceBuilt = `index${NodePath.extname(here)}`;
+const PLUGIN_PATH = NodePath.join(
+  NodePath.dirname(here),
+  siblingIndexTsInSourceOrIndexMjsOnceBuilt,
+);
 const jsPlugins: OxlintConfig["jsPlugins"] = [PLUGIN_PATH];
 
 export const TEST_FILES = [
@@ -13,18 +16,16 @@ export const TEST_FILES = [
 ];
 
 interface FileScope {
-  /** Globs the rules apply to, relative to the config file. */
   readonly files: ReadonlyArray<string>;
-  /** Globs inside `files` the rules skip. Test files are always skipped. */
   readonly excludeFiles?: ReadonlyArray<string>;
 }
 
 const scoped = (
   scope: FileScope,
   rules: NonNullable<OxlintOverride["rules"]>,
-  excludeTests = true,
+  testFiles: "skip" | "check" = "skip",
 ): OxlintOverride => {
-  const excludeFiles = [...(excludeTests ? TEST_FILES : []), ...(scope.excludeFiles ?? [])];
+  const excludeFiles = [...(testFiles === "skip" ? TEST_FILES : []), ...(scope.excludeFiles ?? [])];
   return {
     files: [...scope.files],
     ...(excludeFiles.length > 0 ? { excludeFiles } : {}),
@@ -32,7 +33,6 @@ const scoped = (
   };
 };
 
-/** Built-in rule choices and the plugin rules that fit any TypeScript project. */
 export const recommended: OxlintConfig = {
   plugins: ["eslint", "oxc", "unicorn", "typescript"],
   jsPlugins,
@@ -69,8 +69,10 @@ export const recommended: OxlintConfig = {
     "unicorn/prefer-set-has": "off",
     "unicorn/prefer-string-starts-ends-with": "off",
     "unicorn/require-module-specifiers": "error",
+    "jandragsbaek/max-file-lines": "error",
+    "jandragsbaek/max-file-lines-hard": "error",
     "jandragsbaek/namespace-node-imports": "error",
-    "jandragsbaek/no-low-value-comments": "error",
+    "jandragsbaek/no-explanatory-comments": "error",
     "jandragsbaek/no-unscoped-has": "error",
     "jandragsbaek/require-suppression-reason": "error",
   },
@@ -79,11 +81,9 @@ export const recommended: OxlintConfig = {
   },
 };
 
-/** Deterministic tests: no real time, no polling, no timeouts or unreasoned skips. */
 export const tests: OxlintConfig = {
   jsPlugins,
   rules: {
-    // These rules read the filename and only check test files.
     "jandragsbaek/no-dom-test-environment": "error",
     "jandragsbaek/no-polling-loop-in-tests": "error",
     "jandragsbaek/no-real-time-wait-in-tests": "error",
@@ -93,7 +93,6 @@ export const tests: OxlintConfig = {
   },
 };
 
-/** Effect code: Effect.fn, catchTags, hoisted Schema compilers, @effect/vitest. */
 export const effect: OxlintConfig = {
   jsPlugins,
   rules: {
@@ -105,7 +104,6 @@ export const effect: OxlintConfig = {
   overrides: [{ files: TEST_FILES, rules: { "jandragsbaek/prefer-effect-fn": "off" } }],
 };
 
-/** React: strict hook and render rules, and a reason on every effect that stays. */
 export const react: OxlintConfig = {
   plugins: ["react"],
   jsPlugins,
@@ -123,15 +121,12 @@ export const react: OxlintConfig = {
     "react/refs": "error",
     "react/set-state-in-effect": "error",
     "react/static-components": "error",
-    // Skips test files itself.
     "jandragsbaek/no-unreasoned-state-sync": "error",
   },
 };
 
-/**
- * Files the React Compiler compiles. The compiler owns memoization, and it caches `use*`
- * functions only if they call a hook. Use with `react`.
- */
+const compilerMemoizesContextValues = { "react/jsx-no-constructed-context-values": "off" } as const;
+
 export const reactCompiler = (scope: FileScope): OxlintConfig => ({
   jsPlugins,
   overrides: [
@@ -140,29 +135,23 @@ export const reactCompiler = (scope: FileScope): OxlintConfig => ({
       {
         "react/globals": "error",
         "react/hooks": "error",
-        // The compiler memoizes context values; this rule would ask for useMemo.
-        "react/jsx-no-constructed-context-values": "off",
+        ...compilerMemoizesContextValues,
         "react/preserve-manual-memoization": "error",
         "react/set-state-in-render": "error",
         "react/unsupported-syntax": "error",
         "jandragsbaek/no-manual-memo": "error",
       },
-      false,
+      "check",
     ),
     scoped(scope, { "jandragsbaek/no-hookless-use-function": "error" }),
   ],
 });
 
-/** Product copy that users or agents read: no em dashes. Test files are skipped. */
 export const productCopy = (scope: FileScope): OxlintConfig => ({
   jsPlugins,
   overrides: [scoped(scope, { "jandragsbaek/no-em-dash-copy": "error" })],
 });
 
-/**
- * Interface text lives in message catalogs, never inline in JSX. `message` names the
- * project's catalogs and how to read them. Test files are skipped.
- */
 export const uiText = (scope: FileScope & { readonly message?: string }): OxlintConfig => ({
   jsPlugins,
   overrides: [

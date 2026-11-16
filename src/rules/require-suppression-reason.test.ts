@@ -16,8 +16,8 @@ describe("jandragsbaek/require-suppression-reason", () => {
     `,
   );
 
-  rule.valid(
-    "allows a directive explained by the comment above",
+  rule.invalid(
+    "reports a directive explained only by a comment above",
     `
       // Positions are stable for a given string.
       // oxlint-disable-next-line react/no-array-index-key
@@ -25,12 +25,11 @@ describe("jandragsbaek/require-suppression-reason", () => {
     `,
   );
 
-  rule.valid(
-    "allows stacked directives under one explanation",
+  rule.invalid(
+    "reports a TypeScript directive explained only by a comment above",
     `
       // The fixture is invalid on purpose.
       // @ts-expect-error
-      // oxlint-disable-next-line no-unused-vars
       const value: number = "text";
     `,
   );
@@ -57,7 +56,7 @@ describe("jandragsbaek/require-suppression-reason", () => {
       const ansi = /\\x1b\\[/;
     `,
     (output) => {
-      assert.match(output, /end the directive with `-- reason`/);
+      assert.match(output, /end the directive with `-- <reason>`/);
     },
   );
 
@@ -73,38 +72,8 @@ describe("jandragsbaek/require-suppression-reason", () => {
       const count: number = "text";
     `,
     (output) => {
-      assert.match(output, /write the reason after the directive/);
+      assert.match(output, /write the reason after the directive, on the same comment/);
     },
-  );
-
-  rule.invalid(
-    "does not count a comment separated by a blank line",
-    `
-      // Positions are stable for a given string.
-
-      // oxlint-disable-next-line react/no-array-index-key
-      const items = ["a"].map((item, index) => <li key={index}>{item}</li>);
-    `,
-  );
-
-  rule.valid(
-    "allows an empty comment line between the reason and the directive",
-    `
-      // Positions are stable for a given string.
-      //
-      // oxlint-disable-next-line react/no-array-index-key
-      const items = ["a"].map((item, index) => <li key={index}>{item}</li>);
-    `,
-  );
-
-  rule.invalid(
-    "does not count an empty comment above",
-    `
-      //
-      /* */
-      // oxlint-disable-next-line react/no-array-index-key
-      const items = ["a"].map((item, index) => <li key={index}>{item}</li>);
-    `,
   );
 
   rule.invalid(

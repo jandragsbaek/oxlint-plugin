@@ -34,7 +34,6 @@ const memberPath = (node: unknown): Option.Option<ReadonlyArray<string>> => {
   if (Option.isNone(expression)) return Option.none();
   if (expression.value.type === "Identifier") return Option.some([expression.value.name]);
   if (expression.value.type !== "MemberExpression") return Option.none();
-  // `Date[now]` with a variable key is unknowable; only a literal key names a member.
   if (expression.value.computed && !isStringLiteral(expression.value.property))
     return Option.none();
   const property = getPropertyName(expression.value.property);
@@ -60,9 +59,7 @@ const isMockingCall = (callee: unknown): boolean => {
   );
 };
 
-// Readings that feed a mock (or live in a vi.mock factory) seed fake time
-// rather than measure the runner, so they stay allowed.
-const isMockArgument = (node: ESTree.Node): boolean => {
+const seedsFakeTimeThroughAMock = (node: ESTree.Node): boolean => {
   let child: ESTree.Node = node;
   let current = node.parent;
   while (current) {
@@ -93,13 +90,13 @@ export default defineRule({
     return {
       CallExpression(node) {
         if (!isWallClockCall(node.callee)) return;
-        if (isMockArgument(node)) return;
+        if (seedsFakeTimeThroughAMock(node)) return;
         context.report({ node, message: MESSAGE });
       },
       NewExpression(node) {
         if (node.arguments.length > 0) return;
         if (!isIdentifier(unwrapExpression(node.callee), "Date")) return;
-        if (isMockArgument(node)) return;
+        if (seedsFakeTimeThroughAMock(node)) return;
         context.report({ node, message: MESSAGE });
       },
     };
