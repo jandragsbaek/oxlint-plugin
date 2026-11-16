@@ -3,14 +3,19 @@ import { describe } from "@effect/vitest";
 import { createOxlintRuleHarness } from "../../test/utils.ts";
 
 const rule = createOxlintRuleHarness("jandragsbaek/no-dom-test-environment");
-// Split so Vitest does not read the fixtures as this file's own environment pragma.
-const PRAGMA = ["@vitest", "environment"].join("-");
+const PRAGMA_SPLIT_TO_HIDE_IT_FROM_VITEST = ["@vitest", "environment"].join("-");
 
 describe("jandragsbaek/no-dom-test-environment", () => {
   rule.valid("allows browser tests", 'import { page } from "vite-plus/test/browser";');
   rule.valid("allows similarly named packages", 'import "jsdom-helper";');
-  rule.invalid("rejects line pragmas", `// ${PRAGMA} jsdom\nexport {};`);
-  rule.invalid("rejects block pragmas for any environment", `/** ${PRAGMA} node */`);
+  rule.invalid(
+    "rejects line pragmas",
+    `// ${PRAGMA_SPLIT_TO_HIDE_IT_FROM_VITEST} jsdom\nexport {};`,
+  );
+  rule.invalid(
+    "rejects block pragmas for any environment",
+    `/** ${PRAGMA_SPLIT_TO_HIDE_IT_FROM_VITEST} node */`,
+  );
   rule.invalid("rejects jsdom imports", 'import { JSDOM } from "jsdom";');
   rule.invalid("rejects happy-dom imports", 'import "happy-dom";');
   rule.invalid("rejects emulator subpaths", 'import "jsdom/lib/api.js";');

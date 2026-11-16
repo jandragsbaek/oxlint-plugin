@@ -56,3 +56,29 @@ export function isIdentifier(node: Option.Option<AstNode>, name?: string): boole
     (name === undefined || expression.name === name)
   );
 }
+
+export function countFileLines(lines: ReadonlyArray<string>): number {
+  return lines.at(-1) === "" ? lines.length - 1 : lines.length;
+}
+
+export function readMaxLines(options: ReadonlyArray<unknown>, defaultMax: number): number {
+  const [first] = options;
+  return typeof first === "object" &&
+    first !== null &&
+    "max" in first &&
+    typeof first.max === "number" &&
+    Number.isInteger(first.max) &&
+    first.max > 0
+    ? first.max
+    : defaultMax;
+}
+
+export const maxLinesSchema = (defaultMax: number) => [
+  {
+    type: "object",
+    properties: {
+      max: { type: "integer", minimum: 1, default: defaultMax },
+    },
+    additionalProperties: false,
+  },
+];

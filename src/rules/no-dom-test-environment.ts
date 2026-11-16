@@ -1,8 +1,7 @@
 import { defineRule, type ESTree } from "@oxlint/plugins";
 
 const DOM_ENVIRONMENT_PACKAGE = /^(?:jsdom|happy-dom)(?:\/|$)/u;
-// Split so this rule does not find the pragma in its own source.
-const PRAGMA = ["@vitest", "environment"].join("-");
+const PRAGMA_SPLIT_TO_HIDE_IT_FROM_THIS_RULE = ["@vitest", "environment"].join("-");
 const MESSAGE =
   "Select test environments in Vitest project configuration instead of a per-file pragma or a DOM emulator import. Web DOM tests belong in *.browser.test.{ts,tsx}.";
 
@@ -27,7 +26,7 @@ export default defineRule({
 
     return {
       Program() {
-        const index = context.sourceCode.text.indexOf(PRAGMA);
+        const index = context.sourceCode.text.indexOf(PRAGMA_SPLIT_TO_HIDE_IT_FROM_THIS_RULE);
         if (index !== -1) {
           context.report({ loc: context.sourceCode.getLocFromIndex(index), message: MESSAGE });
         }

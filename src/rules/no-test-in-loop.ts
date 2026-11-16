@@ -4,8 +4,7 @@ import * as Option from "effect/Option";
 import { getPropertyName, unwrapExpression } from "../utils.ts";
 
 const TEST_FILE_PATTERN = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
-// node:test has no `.each`, so files written against it keep their loops.
-const NODE_TEST_IMPORT_PATTERN = /["']node:test["']/u;
+const NODE_TEST_IMPORT_WHICH_HAS_NO_EACH = /["']node:test["']/u;
 const TEST_FUNCTIONS = new Set(["describe", "it", "suite", "test"]);
 const EACH_CAPABLE_MODIFIERS = new Set(["effect", "live"]);
 const LOOPS = new Set(["ForStatement", "ForInStatement", "ForOfStatement"]);
@@ -52,7 +51,7 @@ export default defineRule({
   },
   create(context) {
     if (!TEST_FILE_PATTERN.test(context.filename)) return {};
-    if (NODE_TEST_IMPORT_PATTERN.test(context.sourceCode.text)) return {};
+    if (NODE_TEST_IMPORT_WHICH_HAS_NO_EACH.test(context.sourceCode.text)) return {};
 
     return {
       CallExpression(node) {

@@ -4,6 +4,9 @@ import { defineConfig } from "vite-plus";
 import { effect, recommended, tests } from "./src/presets.ts";
 
 const BUILD_OUTPUT = ["dist", "node_modules", "pnpm-lock.yaml", "*.tsbuildinfo"];
+const BUNDLED_SO_CONSUMERS_INSTALL_NOTHING_ELSE = ["@oxlint/plugins", "effect"];
+const FORMAT_FIRST_SO_LINT_READS_THE_FORMATTED_FILE = "vp fmt --no-error-on-unmatched-pattern";
+const RULE_TESTS_HOLD_REJECTED_CODE_AS_FIXTURE_STRINGS = ["src/rules/*.test.ts"];
 
 export default defineConfig({
   test: {
@@ -12,20 +15,17 @@ export default defineConfig({
     hookTimeout: 60_000,
     testTimeout: 60_000,
     allowOnly: !process.env.CI,
-    // Flaky tests are fixed, not retried.
     retry: 0,
   },
   pack: {
     entry: ["src/index.ts", "src/presets.ts"],
     platform: "node",
     dts: true,
-    // Bundled, so a project that installs the plugin installs nothing else.
-    deps: { onlyBundle: ["@oxlint/plugins", "effect"] },
+    deps: { onlyBundle: BUNDLED_SO_CONSUMERS_INSTALL_NOTHING_ELSE },
     publint: true,
   },
   staged: {
-    // In order, so lint reads the formatted file.
-    "*": ["vp fmt --no-error-on-unmatched-pattern", "vp lint --no-error-on-unmatched-pattern"],
+    "*": [FORMAT_FIRST_SO_LINT_READS_THE_FORMATTED_FILE, "vp lint --no-error-on-unmatched-pattern"],
   },
   fmt: {
     ignorePatterns: BUILD_OUTPUT,
@@ -36,8 +36,7 @@ export default defineConfig({
     ignorePatterns: BUILD_OUTPUT,
     overrides: [
       {
-        // Rule tests hold the code each rule rejects as fixture strings.
-        files: ["src/rules/*.test.ts"],
+        files: RULE_TESTS_HOLD_REJECTED_CODE_AS_FIXTURE_STRINGS,
         rules: {
           "jandragsbaek/no-dom-test-environment": "off",
           "jandragsbaek/no-em-dash-copy": "off",

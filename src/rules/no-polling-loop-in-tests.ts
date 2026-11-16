@@ -15,16 +15,18 @@ type LoopNode = ESTree.ForStatement | ESTree.WhileStatement | ESTree.DoWhileStat
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 
-// Visits `node` and its descendants, skipping nested functions: a wait or exit
-// inside a callback runs on the callback's schedule, not the loop's.
-const someDescendant = (node: unknown, match: (node: ESTree.Node) => boolean): boolean => {
-  if (Array.isArray(node)) return node.some((child) => someDescendant(child, match));
+const someDescendantOutsideNestedFunctions = (
+  node: unknown,
+  match: (node: ESTree.Node) => boolean,
+): boolean => {
+  if (Array.isArray(node))
+    return node.some((child) => someDescendantOutsideNestedFunctions(child, match));
   if (!isNode(node)) return false;
   if (match(node)) return true;
   if (FUNCTIONS.has(node.type)) return false;
   for (const [key, value] of Object.entries(node)) {
     if (key === "parent") continue;
-    if (someDescendant(value, match)) return true;
+    if (someDescendantOutsideNestedFunctions(value, match)) return true;
   }
   return false;
 };
@@ -57,8 +59,7 @@ const isTimerReference = (node: unknown): boolean => {
   );
 };
 
-// `Promise.resolve()`, or a `new Promise` whose executor schedules a timer.
-const isTickPromise = (node: unknown): boolean => {
+const isPromiseResolveOrTimerPromise = (node: unknown): boolean => {
   const expression = unwrapExpression(node);
   if (Option.isNone(expression)) return false;
   const value = expression.value;
@@ -69,7 +70,7 @@ const isTickPromise = (node: unknown): boolean => {
   const [executor] = value.arguments;
   if (isTimerReference(executor)) return true;
   if (!isNode(executor) || !FUNCTIONS.has(executor.type)) return false;
-  return someDescendant(
+  return someDescendantOutsideNestedFunctions(
     (executor as ESTree.ArrowFunctionExpression).body,
     (child) => child.type === "CallExpression" && isTimerReference(child.callee),
   );
@@ -78,15 +79,15 @@ const isTickPromise = (node: unknown): boolean => {
 const thunkReturnsTick = (node: unknown): boolean => {
   if (!isNode(node) || node.type !== "ArrowFunctionExpression") return false;
   const body = node.body;
-  if (body.type !== "BlockStatement") return isTickPromise(body);
+  if (body.type !== "BlockStatement") return isPromiseResolveOrTimerPromise(body);
   const last = body.body.at(-1);
-  return last?.type === "ReturnStatement" && isTickPromise(last.argument);
+  return last?.type === "ReturnStatement" && isPromiseResolveOrTimerPromise(last.argument);
 };
 
 const isWait = (node: ESTree.Node): boolean => {
   if (node.type === "MemberExpression") return isMember(node, "Effect", "yieldNow");
-  if (node.type === "AwaitExpression") return isTickPromise(node.argument);
-  if (node.type === "NewExpression") return isTickPromise(node);
+  if (node.type === "AwaitExpression") return isPromiseResolveOrTimerPromise(node.argument);
+  if (node.type === "NewExpression") return isPromiseResolveOrTimerPromise(node);
   if (node.type !== "CallExpression") return false;
   if (isMember(node.callee, "Effect", "sleep")) return true;
   if (isIdentifier(unwrapExpression(node.callee), "setImmediate")) return true;
@@ -95,11 +96,11 @@ const isWait = (node: ESTree.Node): boolean => {
 };
 
 const hasConditionalExit = (body: ESTree.Node): boolean =>
-  someDescendant(
+  someDescendantOutsideNestedFunctions(
     body,
     (node) =>
       node.type === "IfStatement" &&
-      someDescendant(
+      someDescendantOutsideNestedFunctions(
         [node.consequent, node.alternate],
         (child) =>
           child.type === "ReturnStatement" ||
@@ -118,7 +119,7 @@ const isNumericBound = (node: unknown): boolean => {
 };
 
 const updatesCounter = (node: unknown, name: string): boolean =>
-  someDescendant(
+  someDescendantOutsideNestedFunctions(
     node,
     (child) =>
       (child.type === "UpdateExpression" && isIdentifier(unwrapExpression(child.argument), name)) ||
@@ -127,10 +128,7 @@ const updatesCounter = (node: unknown, name: string): boolean =>
         isIdentifier(unwrapExpression(child.left), name)),
   );
 
-// A bare counter (`i < 3`, `attempt < max`) that the loop itself advances
-// bounds the loop without asking anything about the system under test.
-// `events.length < 1` or a counter nobody increments is a predicate.
-const isCounterTest = (loop: LoopNode): boolean => {
+const isBoundByCounterTheLoopAdvances = (loop: LoopNode): boolean => {
   if (loop.test == null) return false;
   const expression = unwrapExpression(loop.test);
   if (Option.isNone(expression) || expression.value.type !== "BinaryExpression") return false;
@@ -160,12 +158,9 @@ const isTrueLiteral = (test: ESTree.Expression): boolean => {
   );
 };
 
-// A loop polls when a predicate decides whether it continues: a conditional exit in the body,
-// or a test that is neither `true` nor a counter the loop advances. A fixed-count flush is
-// not polling, so code after the loop is ignored.
 const hasPredicateExit = (loop: LoopNode): boolean =>
   hasConditionalExit(loop.body) ||
-  (loop.test != null && !isTrueLiteral(loop.test) && !isCounterTest(loop));
+  (loop.test != null && !isTrueLiteral(loop.test) && !isBoundByCounterTheLoopAdvances(loop));
 
 export default defineRule({
   meta: {
@@ -180,7 +175,7 @@ export default defineRule({
     if (!TEST_FILE_PATTERN.test(context.filename)) return {};
 
     const check = (loop: LoopNode) => {
-      if (!someDescendant(loop.body, isWait)) return;
+      if (!someDescendantOutsideNestedFunctions(loop.body, isWait)) return;
       if (!hasPredicateExit(loop)) return;
       context.report({ node: loop, message: MESSAGE });
     };

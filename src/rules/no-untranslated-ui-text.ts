@@ -13,8 +13,7 @@ const readMessage = (options: ReadonlyArray<unknown>): string => {
     : DEFAULT_MESSAGE;
 };
 
-/** Attributes that users read or hear. */
-const USER_FACING_ATTRIBUTES = new Set([
+const ATTRIBUTES_USERS_READ_OR_HEAR = new Set([
   "alt",
   "aria-description",
   "aria-label",
@@ -26,8 +25,7 @@ const USER_FACING_ATTRIBUTES = new Set([
   "title",
 ]);
 
-// Separators, numbers and marks such as "·" or "¶" carry no language.
-const HAS_LETTER = /\p{L}/u;
+const HAS_LETTER_NOT_ONLY_SEPARATORS_OR_MARKS = /\p{L}/u;
 
 export default defineRule({
   meta: {
@@ -52,14 +50,17 @@ export default defineRule({
   create(context) {
     const message = readMessage(context.options);
     const check = (node: ESTree.Node, text: string) => {
-      if (HAS_LETTER.test(text)) context.report({ node, message });
+      if (HAS_LETTER_NOT_ONLY_SEPARATORS_OR_MARKS.test(text)) context.report({ node, message });
     };
     return {
       JSXText(node) {
         check(node, node.value);
       },
       JSXAttribute(node) {
-        if (node.name.type !== "JSXIdentifier" || !USER_FACING_ATTRIBUTES.has(node.name.name)) {
+        if (
+          node.name.type !== "JSXIdentifier" ||
+          !ATTRIBUTES_USERS_READ_OR_HEAR.has(node.name.name)
+        ) {
           return;
         }
         const value = node.value;

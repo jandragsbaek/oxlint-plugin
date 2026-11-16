@@ -4,9 +4,7 @@ import * as Option from "effect/Option";
 import { getPropertyName, unwrapExpression } from "../utils.ts";
 
 const TEST_FILE_PATTERN = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
-// Opt-in suites that drive real provider agents through whole turns; minutes are the
-// expected cost there, not a hidden wait.
-const LIVE_TEST_FILE_PATTERN = /\.live\.(?:test|spec)\.[cm]?[jt]sx?$/u;
+const OPT_IN_LIVE_AGENT_SUITE_PATTERN = /\.live\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 const TEST_FUNCTIONS = new Set(["describe", "it", "suite", "test"]);
 const HOOK_FUNCTIONS = new Set(["afterAll", "afterEach", "beforeAll", "beforeEach"]);
 const FOCUS_OR_SKIP_MODIFIERS = new Set(["only", "skip", "todo"]);
@@ -21,20 +19,18 @@ const TIMEOUT_MESSAGE =
 const SKIP_MESSAGE =
   "A skipped test needs a tracking issue in the comment above it: `// quarantine: #1234 <why>`.";
 
-// Walks `it.effect.each(cases)` / `describe.skipIf(x)` / `it.layer(L)` down to the
-// identifier that registers the test.
-const chainRoot = (node: unknown): Option.Option<string> => {
+const identifierThatRegistersTheTest = (node: unknown): Option.Option<string> => {
   const expression = unwrapExpression(node);
   if (Option.isNone(expression)) return Option.none();
   const value = expression.value;
   if (value.type === "Identifier") return Option.some(value.name);
-  if (value.type === "MemberExpression") return chainRoot(value.object);
-  if (value.type === "CallExpression") return chainRoot(value.callee);
+  if (value.type === "MemberExpression") return identifierThatRegistersTheTest(value.object);
+  if (value.type === "CallExpression") return identifierThatRegistersTheTest(value.callee);
   return Option.none();
 };
 
 const isTestChain = (node: unknown) =>
-  Option.exists(chainRoot(node), (name) => TEST_FUNCTIONS.has(name));
+  Option.exists(identifierThatRegistersTheTest(node), (name) => TEST_FUNCTIONS.has(name));
 
 const hasEnabledOption = (node: unknown, names: ReadonlySet<string>) => {
   const expression = unwrapExpression(node);
@@ -90,7 +86,7 @@ export default defineRule({
   },
   create(context) {
     if (!TEST_FILE_PATTERN.test(context.filename)) return {};
-    const checkTimeouts = !LIVE_TEST_FILE_PATTERN.test(context.filename);
+    const checkTimeouts = !OPT_IN_LIVE_AGENT_SUITE_PATTERN.test(context.filename);
 
     const reportUnlessQuarantined = (node: ESTree.Node) => {
       const comments = context.sourceCode.getCommentsBefore(enclosingStatement(node));
@@ -105,7 +101,10 @@ export default defineRule({
 
         if (
           callee.value.type === "MemberExpression" &&
-          Option.exists(chainRoot(callee.value.object), (name) => name === "vi") &&
+          Option.exists(
+            identifierThatRegistersTheTest(callee.value.object),
+            (name) => name === "vi",
+          ) &&
           Option.exists(getPropertyName(callee.value.property), (name) => name === "setConfig")
         ) {
           if (checkTimeouts && hasOption(node.arguments[0], SET_CONFIG_OPTIONS)) {
@@ -123,7 +122,6 @@ export default defineRule({
 
         if (!isTestChain(callee.value)) return;
         const [, second, third] = node.arguments;
-        // `test(name, { timeout }, fn)` is the options-first spelling of the same override.
         if (
           checkTimeouts &&
           (isNumericLiteral(third) ||
@@ -132,8 +130,6 @@ export default defineRule({
         ) {
           context.report({ node, message: TIMEOUT_MESSAGE });
         }
-        // `test(name, { skip: true }, fn)` is the options spelling of `test.skip`. A computed value
-        // such as `{ skip: windowsHost }` is a platform gate, the same as `skipIf`, and stays allowed.
         if (
           hasEnabledOption(second, FOCUS_OR_SKIP_MODIFIERS) ||
           hasEnabledOption(third, FOCUS_OR_SKIP_MODIFIERS)
@@ -151,7 +147,6 @@ export default defineRule({
         if (!Option.exists(getPropertyName(node.property), (n) => FOCUS_OR_SKIP_MODIFIERS.has(n))) {
           return;
         }
-        // `it["skip"](...)` is the same registration; only a dynamic key is unknowable here.
         if (node.computed && !isStringLiteral(node.property)) return;
         if (!isTestChain(node.object)) return;
         reportUnlessQuarantined(node);

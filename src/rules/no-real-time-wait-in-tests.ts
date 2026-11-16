@@ -26,9 +26,7 @@ interface CalleeChain {
   readonly calls: ReadonlyArray<ESTree.CallExpression>;
 }
 
-// Flattens `it.live.skipIf(cond)` or `it.layer(L, opts)` into the root name, the member
-// names, and the curried calls whose arguments carry options like `excludeTestServices`.
-const calleeChain = (callee: unknown): Option.Option<CalleeChain> => {
+const flattenCalleeChain = (callee: unknown): Option.Option<CalleeChain> => {
   const members: Array<string> = [];
   const calls: Array<ESTree.CallExpression> = [];
   let current = unwrapExpression(callee);
@@ -88,9 +86,7 @@ const excludesTestServices = (chain: CalleeChain) =>
     }),
   );
 
-// The clock a call runs on: the nearest enclosing test call decides, and an enclosing
-// `it.layer(_, { excludeTestServices: true })` block strips the TestClock from `it.effect`.
-const enclosingTester = (node: ESTree.Node): Option.Option<Tester> => {
+const clockOfNearestEnclosingTest = (node: ESTree.Node): Option.Option<Tester> => {
   let child: ESTree.Node = node;
   let current = node.parent;
   let tester: Option.Option<Tester> = Option.none();
@@ -99,7 +95,7 @@ const enclosingTester = (node: ESTree.Node): Option.Option<Tester> => {
       current.type === "CallExpression" &&
       current.arguments.some((argument) => argument === child)
     ) {
-      const chain = calleeChain(current.callee);
+      const chain = flattenCalleeChain(current.callee);
       if (Option.isSome(chain)) {
         if (Option.isNone(tester)) {
           tester = testerKind(chain.value);
@@ -136,9 +132,7 @@ const LOOPS = new Set([
   "WhileStatement",
 ]);
 
-// `while (...) { yield* Effect.sleep(...) }`: a statement of the loop body itself, not a
-// conditional delay inside it.
-const isPollingLoopStep = (node: ESTree.Node): boolean => {
+const isUnconditionalStatementOfLoopBody = (node: ESTree.Node): boolean => {
   let statement: ESTree.Node | null = node.parent;
   while (statement && statement.type !== "ExpressionStatement") {
     if (FUNCTIONS.has(statement.type)) return false;
@@ -179,8 +173,7 @@ export default defineRule({
   create(context) {
     if (!TEST_FILE_PATTERN.test(context.filename)) return {};
     let drivesTestClock = false;
-    // Whether the file drives the TestClock is only known after the whole file is walked.
-    const untilDrivenReports: Array<{ node: ESTree.Node; message: string }> = [];
+    const reportsUnlessFileDrivesTestClock: Array<{ node: ESTree.Node; message: string }> = [];
     const timerPromiseLocals = new Set<string>();
     const timerPromiseNamespaces = new Set<string>();
 
@@ -228,7 +221,7 @@ export default defineRule({
           isTimerPromiseCall(node.callee) ||
           (isCallbackTimer(node.callee) && isInsidePromiseExecutor(node))
         ) {
-          const tester = enclosingTester(node);
+          const tester = clockOfNearestEnclosingTest(node);
           reportFor(
             Option.isSome(tester) && tester.value === "effect"
               ? `${REAL_CLOCK_MESSAGE} ${MIXED_CLOCK_MESSAGE}`
@@ -251,26 +244,31 @@ export default defineRule({
           (object === "Schedule" && SCHEDULE_WAITS.has(property));
         if (!isWait) return;
 
-        const tester = enclosingTester(node);
-        if (Option.isNone(tester)) {
-          // A shared helper can serve TestClock tests, so only report it when nothing in
-          // the file drives the TestClock or it polls in a loop, which only a real clock ends.
-          if (isPollingLoopStep(node)) {
+        const tester = clockOfNearestEnclosingTest(node);
+        const inSharedHelperThatMayServeTestClockTests = Option.isNone(tester);
+        if (inSharedHelperThatMayServeTestClockTests) {
+          if (isUnconditionalStatementOfLoopBody(node)) {
             reportFor(REAL_CLOCK_MESSAGE);
           } else {
-            untilDrivenReports.push({ node: node.callee, message: REAL_CLOCK_MESSAGE });
+            reportsUnlessFileDrivesTestClock.push({
+              node: node.callee,
+              message: REAL_CLOCK_MESSAGE,
+            });
           }
           return;
         }
         if (tester.value !== "effect") {
           reportFor(REAL_CLOCK_MESSAGE);
         } else if (isSleep) {
-          untilDrivenReports.push({ node: node.callee, message: UNDRIVEN_TEST_CLOCK_MESSAGE });
+          reportsUnlessFileDrivesTestClock.push({
+            node: node.callee,
+            message: UNDRIVEN_TEST_CLOCK_MESSAGE,
+          });
         }
       },
       "Program:exit"() {
         if (drivesTestClock) return;
-        for (const report of untilDrivenReports) context.report(report);
+        for (const report of reportsUnlessFileDrivesTestClock) context.report(report);
       },
     };
   },
