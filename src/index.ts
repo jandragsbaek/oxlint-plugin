@@ -10,6 +10,7 @@ import noHooklessUseFunction from "./rules/no-hookless-use-function.ts";
 import noInlineSchemaCompile from "./rules/no-inline-schema-compile.ts";
 import noManualEffectRuntimeInTests from "./rules/no-manual-effect-runtime-in-tests.ts";
 import noManualMemo from "./rules/no-manual-memo.ts";
+import noRawColor from "./rules/no-raw-color.ts";
 import noPollingLoopInTests from "./rules/no-polling-loop-in-tests.ts";
 import noRealTimeWaitInTests from "./rules/no-real-time-wait-in-tests.ts";
 import noTestInLoop from "./rules/no-test-in-loop.ts";
@@ -38,6 +39,7 @@ export default definePlugin({
     "no-manual-effect-runtime-in-tests": noManualEffectRuntimeInTests,
     "no-manual-memo": noManualMemo,
     "no-polling-loop-in-tests": noPollingLoopInTests,
+    "no-raw-color": noRawColor,
     "no-real-time-wait-in-tests": noRealTimeWaitInTests,
     "no-test-in-loop": noTestInLoop,
     "no-test-timeout-or-unreasoned-skip": noTestTimeoutOrUnreasonedSkip,

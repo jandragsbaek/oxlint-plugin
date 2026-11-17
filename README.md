@@ -45,15 +45,16 @@ them all.
 
 ### Presets
 
-| Preset                       | For                                                                                                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `recommended`                | Any TypeScript project. Built-in rule choices, plus `max-file-lines`, `max-file-lines-hard`, `namespace-node-imports`, `no-explanatory-comments`, `no-unscoped-has`, `require-suppression-reason`. |
-| `tests`                      | Projects with Vitest tests. The rules read the filename and check only test files.                                                                                                                 |
-| `effect`                     | Projects on [Effect](https://effect.website). `prefer-effect-fn` is off in test files.                                                                                                             |
-| `react`                      | React projects. Strict hook and render rules, and `no-unreasoned-state-sync`.                                                                                                                      |
-| `reactCompiler({ files })`   | Files the React Compiler compiles. The compiler owns memoization. Use with `react`.                                                                                                                |
-| `productCopy({ files })`     | Code that holds text users or agents read: no em dashes.                                                                                                                                           |
-| `uiText({ files, message })` | Interface code with i18n catalogs: no inline JSX text. `message` tells the reader where the catalogs are.                                                                                          |
+| Preset                        | For                                                                                                                                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recommended`                 | Any TypeScript project. Built-in rule choices, plus `max-file-lines`, `max-file-lines-hard`, `namespace-node-imports`, `no-explanatory-comments`, `no-unscoped-has`, `require-suppression-reason`. |
+| `tests`                       | Projects with Vitest tests. The rules read the filename and check only test files.                                                                                                                 |
+| `effect`                      | Projects on [Effect](https://effect.website). `prefer-effect-fn` is off in test files.                                                                                                             |
+| `react`                       | React projects. Strict hook and render rules, and `no-unreasoned-state-sync`.                                                                                                                      |
+| `reactCompiler({ files })`    | Files the React Compiler compiles. The compiler owns memoization. Use with `react`.                                                                                                                |
+| `productCopy({ files })`      | Code that holds text users or agents read: no em dashes.                                                                                                                                           |
+| `uiText({ files, message })`  | Interface code with i18n catalogs: no inline JSX text. `message` tells the reader where the catalogs are.                                                                                          |
+| `theming({ files, message })` | Interface code with themes: no color literals (hex, `rgb()`, `oklch()` and the like); colors come from theme tokens. `message` names the tokens.                                                   |
 
 The presets that take `files` skip test files. `excludeFiles` skips more. Globs in `files` and
 `excludeFiles` are relative to the config file. Glose's setup:
@@ -90,6 +91,7 @@ All rules have the `jandragsbaek/` prefix.
 | `no-manual-effect-runtime-in-tests`  | Effect runtimes made or run by hand in tests; use `@effect/vitest`.                                                                           |
 | `no-manual-memo`                     | `useMemo`, `useCallback` and memo directives where the React Compiler memoizes.                                                               |
 | `no-polling-loop-in-tests`           | Test loops that spin on ticks until a condition holds.                                                                                        |
+| `no-raw-color`                       | Color literals (hex, `rgb()`, `oklch()` and the like) in code; colors come from theme tokens.                                                 |
 | `no-real-time-wait-in-tests`         | Real-clock waits in tests.                                                                                                                    |
 | `no-test-in-loop`                    | Tests declared in a `for` loop; use `.each`.                                                                                                  |
 | `no-test-timeout-or-unreasoned-skip` | Per-test timeouts and retries, and skipped or focused tests with no tracking issue.                                                           |
