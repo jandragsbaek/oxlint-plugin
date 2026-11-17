@@ -161,3 +161,13 @@ export const uiText = (scope: FileScope & { readonly message?: string }): Oxlint
     }),
   ],
 });
+
+export const theming = (scope: FileScope & { readonly message?: string }): OxlintConfig => ({
+  jsPlugins,
+  overrides: [
+    scoped(scope, {
+      "jandragsbaek/no-raw-color":
+        scope.message === undefined ? "error" : ["error", { message: scope.message }],
+    }),
+  ],
+});

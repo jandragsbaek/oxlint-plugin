@@ -1,6 +1,6 @@
 {
   "name": "@jandragsbaek/oxlint-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Oxlint rules and presets for tests, Effect, React and product copy.",
   "keywords": [
     "effect",
